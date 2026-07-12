@@ -27,17 +27,18 @@ body {
   position: sticky; top: 0; z-index: 10;
 }
 .header h1 { font-size: 18px; font-weight: 600; }
-.content { padding: 16px; padding-bottom: 84px; flex: 1; }
+.content { padding: 16px; padding-bottom: 110px; flex: 1; }
 
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px;
   background: var(--surface); border-top: 1px solid var(--border);
   display: flex; z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .nav-btn {
-  flex: 1; padding: 10px 4px; background: none; border: none;
-  color: var(--text-muted); font-size: 13px; cursor: pointer;
+  flex: 1; padding: 18px 4px; min-height: 56px; background: none; border: none;
+  color: var(--text-muted); font-size: 16px; font-weight: 500; cursor: pointer;
 }
 .nav-btn.active { color: var(--accent); }
 
