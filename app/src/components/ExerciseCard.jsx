@@ -12,7 +12,7 @@ function ExerciseCard({ sessionExercise }) {
   const [expanded, setExpanded] = useState(false)
   const [loggedSets, setLoggedSets] = useState([])
   const [previousSets, setPreviousSets] = useState([])
-  const [weight, setWeight] = useState(ex.default_weight ?? 20)
+  const [weight, setWeight] = useState(ex.kind === 'weighted' ? ex.default_weight ?? 20 : ex.default_weight ?? 0)
   const [reps, setReps] = useState(defaultRepsGuess(sessionExercise.target_reps))
   const [duration, setDuration] = useState(ex.default_duration ?? 60)
   const [saving, setSaving] = useState(false)
@@ -60,10 +60,9 @@ function ExerciseCard({ sessionExercise }) {
   async function handleLogSet() {
     setSaving(true)
     const setData = { session_exercise_id: sessionExercise.id, set_number: loggedSets.length + 1 }
-    if (ex.kind === 'weighted') {
-      setData.weight = Number(weight)
-      setData.reps = Number(reps)
-    } else if (ex.kind === 'bodyweight') {
+    if (ex.kind === 'weighted' || ex.kind === 'bodyweight') {
+      const addedWeight = Number(weight)
+      if (addedWeight) setData.weight = addedWeight
       setData.reps = Number(reps)
     } else {
       setData.duration_seconds = Number(duration)
@@ -112,10 +111,10 @@ function ExerciseCard({ sessionExercise }) {
             </div>
           ) : (
             <div className="log-form">
-              {ex.kind === 'weighted' && (
+              {(ex.kind === 'weighted' || ex.kind === 'bodyweight') && (
                 <>
                   <div className="form-group">
-                    <label className="form-label">Weight (kg)</label>
+                    <label className="form-label">{ex.kind === 'weighted' ? 'Weight (kg)' : 'Added Weight (kg)'}</label>
                     <input type="number" className="form-input" value={weight} step="2.5" onChange={(e) => setWeight(e.target.value)} />
                   </div>
                   <div className="form-group">
@@ -123,12 +122,6 @@ function ExerciseCard({ sessionExercise }) {
                     <input type="number" className="form-input" value={reps} onChange={(e) => setReps(e.target.value)} />
                   </div>
                 </>
-              )}
-              {ex.kind === 'bodyweight' && (
-                <div className="form-group">
-                  <label className="form-label">Reps</label>
-                  <input type="number" className="form-input" value={reps} onChange={(e) => setReps(e.target.value)} />
-                </div>
               )}
               {ex.kind === 'timed' && (
                 <div className="form-group">

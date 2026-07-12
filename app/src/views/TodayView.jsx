@@ -17,7 +17,6 @@ function TodayView({ userId }) {
   const [rotationIndex, setRotationIndex] = useState(0)
   const [streak, setStreak] = useState(0)
   const [nudge, setNudge] = useState(null)
-  const [trainAnywayType, setTrainAnywayType] = useState(null) // overrides a rest day
 
   useEffect(() => {
     checkForActiveSession()
@@ -118,7 +117,6 @@ function TodayView({ userId }) {
     }
     setSession(null)
     setSessionExercises([])
-    setTrainAnywayType(null)
     setPhase('idle')
   }
 
@@ -140,50 +138,31 @@ function TodayView({ userId }) {
     )
   }
 
-  const dayType = getDayType(rotationIndex)
-
-  if (dayType === 'rest' && !trainAnywayType) {
-    return (
-      <>
-        <StreakBadge streak={streak} />
-        {nudge && <div className="card mb-12" style={{ color: 'var(--danger)', fontSize: 14 }}>{nudge}</div>}
-        <div className="mb-12">
-          <div className="badge" style={{ background: 'rgba(136,136,136,.15)', color: 'var(--text-muted)' }}>Rest Day</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Recovery day</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            No workout scheduled — but you can train anyway if you want to.
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['push', 'pull', 'legs'].map((t) => (
-            <button key={t} className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setTrainAnywayType(t)}>
-              {capitalize(t)}
-            </button>
-          ))}
-        </div>
-      </>
-    )
-  }
-
-  const effectiveDayType = trainAnywayType || dayType
+  const suggestedDayType = getDayType(rotationIndex)
 
   return (
     <>
       <StreakBadge streak={streak} />
       {nudge && <div className="card mb-12" style={{ color: 'var(--danger)', fontSize: 14 }}>{nudge}</div>}
       <div className="mb-12">
-        <div className={`badge badge-${effectiveDayType}`}>{capitalize(effectiveDayType)} Day</div>
-        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Ready to train</div>
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Choose today's session</div>
         <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-          Pick your exercises when you start — no fixed list.
+          {suggestedDayType === 'rest'
+            ? 'Rest day suggested — train anyway if you want to.'
+            : `Suggested: ${capitalize(suggestedDayType)} Day`}
         </div>
       </div>
-      <button
-        className="btn btn-primary w-full"
-        onClick={() => handleStartWorkout(effectiveDayType, rotationIndex)}
-      >
-        Start Workout
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {['push', 'pull', 'legs'].map((t) => (
+          <button
+            key={t}
+            className={`btn ${t === suggestedDayType ? 'btn-primary' : 'btn-secondary'} w-full`}
+            onClick={() => handleStartWorkout(t, rotationIndex)}
+          >
+            {capitalize(t)} Day{t === suggestedDayType ? ' (suggested)' : ''}
+          </button>
+        ))}
+      </div>
     </>
   )
 }
