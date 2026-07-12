@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../supabaseClient'
+import ExercisePicker from '../components/ExercisePicker'
+import ActiveSessionView from './ActiveSessionView'
+import StreakBadge from '../components/StreakBadge'
+import { getNextRotationIndex, getDayType } from '../lib/rotation'
+import { computeStreak, getNudgeMessage } from '../lib/streak'
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function TodayView({ userId }) {
+  const [phase, setPhase] = useState('loading') // loading | idle | picking | active
+  const [session, setSession] = useState(null)
+  const [sessionExercises, setSessionExercises] = useState([])
+  const [rotationIndex, setRotationIndex] = useState(0)
+  const [streak, setStreak] = useState(0)
+  const [nudge, setNudge] = useState(null)
+  const [trainAnywayType, setTrainAnywayType] = useState(null) // overrides a rest day
+
+  useEffect(() => {
+    checkForActiveSession()
+  }, [])
+
+  async function checkForActiveSession() {
+    const { data: active } = await supabase
+      .from('sessions')
+      .select('*')
+      .is('completed_at', null)
+      .order('started_at', { ascending: false })
+      .limit(1)
+
+    if (active && active.length) {
+      setSession(active[0])
+      await loadSessionExercises(active[0].id)
+      setPhase('active')
+      return
+    }
+
+    // No workout in progress — figure out where we are in the PPLPPLR cycle,
+    // and how consistent recent training has been.
+    const { data: completed } = await supabase
+      .from('sessions')
+      .select('rotation_index, session_date')
+      .not('completed_at', 'is', null)
+      .order('session_date', { ascending: false })
+      .order('started_at', { ascending: false })
+
+    const sessions = completed ?? []
+    setRotationIndex(getNextRotationIndex(sessions[0] ?? null))
+    setStreak(computeStreak(sessions))
+    setNudge(getNudgeMessage(sessions))
+    setPhase('idle')
+  }
+
+  async function loadSessionExercises(sessionId) {
+    const { data } = await supabase
+      .from('session_exercises')
+      .select('*, exercise:exercises(*)')
+      .eq('session_id', sessionId)
+      .order('order_index')
+    setSessionExercises(data ?? [])
+  }
+
+  async function handleStartWorkout(dayType, effectiveRotationIndex) {
+    const { data, error } = await supabase
+      .from('sessions')
+      .insert({ user_id: userId, day_type: dayType, rotation_index: effectiveRotationIndex })
+      .select()
+      .single()
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setSession(data)
+    setSessionExercises([])
+    setPhase('picking')
+  }
+
+  async function handlePickerConfirm(selected) {
+    const rows = selected.map((ex, i) => ({
+      session_id: session.id,
+      exercise_id: ex.id,
+      order_index: i,
+      target_sets: ex.default_sets,
+      target_reps: ex.default_reps,
+    }))
+    const { error } = await supabase.from('session_exercises').insert(rows)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    await loadSessionExercises(session.id)
+    setPhase('active')
+  }
+
+  async function handleAbandon() {
+    if (!confirm('Abandon this workout? Progress will be lost.')) return
+    await supabase.from('sessions').delete().eq('id', session.id)
+    setSession(null)
+    setSessionExercises([])
+    setPhase('idle')
+  }
+
+  async function handleComplete() {
+    const durationMinutes = Math.round((Date.now() - new Date(session.started_at).getTime()) / 60000)
+    const { error } = await supabase
+      .from('sessions')
+      .update({ completed_at: new Date().toISOString(), duration_minutes: durationMinutes })
+      .eq('id', session.id)
+    if (error) {
+      alert(error.message)
+      return
+    }
+    setSession(null)
+    setSessionExercises([])
+    setTrainAnywayType(null)
+    setPhase('idle')
+  }
+
+  if (phase === 'loading') return null
+
+  if (phase === 'picking') {
+    return <ExercisePicker dayType={session.day_type} onConfirm={handlePickerConfirm} />
+  }
+
+  if (phase === 'active') {
+    return (
+      <ActiveSessionView
+        session={session}
+        sessionExercises={sessionExercises}
+        onExercisesAdded={() => loadSessionExercises(session.id)}
+        onComplete={handleComplete}
+        onAbandon={handleAbandon}
+      />
+    )
+  }
+
+  const dayType = getDayType(rotationIndex)
+
+  if (dayType === 'rest' && !trainAnywayType) {
+    return (
+      <>
+        <StreakBadge streak={streak} />
+        {nudge && <div className="card mb-12" style={{ color: 'var(--danger)', fontSize: 14 }}>{nudge}</div>}
+        <div className="mb-12">
+          <div className="badge" style={{ background: 'rgba(136,136,136,.15)', color: 'var(--text-muted)' }}>Rest Day</div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Recovery day</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+            No workout scheduled — but you can train anyway if you want to.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {['push', 'pull', 'legs'].map((t) => (
+            <button key={t} className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setTrainAnywayType(t)}>
+              {capitalize(t)}
+            </button>
+          ))}
+        </div>
+      </>
+    )
+  }
+
+  const effectiveDayType = trainAnywayType || dayType
+
+  return (
+    <>
+      <StreakBadge streak={streak} />
+      {nudge && <div className="card mb-12" style={{ color: 'var(--danger)', fontSize: 14 }}>{nudge}</div>}
+      <div className="mb-12">
+        <div className={`badge badge-${effectiveDayType}`}>{capitalize(effectiveDayType)} Day</div>
+        <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>Ready to train</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+          Pick your exercises when you start — no fixed list.
+        </div>
+      </div>
+      <button
+        className="btn btn-primary w-full"
+        onClick={() => handleStartWorkout(effectiveDayType, rotationIndex)}
+      >
+        Start Workout
+      </button>
+    </>
+  )
+}
+
+export default TodayView

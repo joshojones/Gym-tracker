@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gym Tracker</title>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --surface: #1a1a1a;
+            --surface2: #242424;
+            --border: #2a2a2a;
+            --text: #f0f0f0;
+            --text-muted: #888;
+            --accent: #4f9eff;
+            --success: #4aff7a;
+            --danger: #ff4a4a;
+            --push: #ff6b4a;
+            --pull: #4affb8;
+            --legs: #b84aff;
+            --travel: #ffd04a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh; max-width: 480px; margin: 0 auto;
+        }
+        .header {
+            background: var(--surface); padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .content { padding: 16px; padding-bottom: 84px; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 480px;
+            background: var(--surface); border-top: 1px solid var(--border);
+            display: flex; z-index: 10;
+        }
+        .nav-btn {
+            flex: 1; padding: 10px 4px; background: none; border: none;
+            color: var(--text-muted); font-size: 11px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+        }
+        .nav-btn.active { color: var(--accent); }
+        .nav-btn svg { width: 22px; height: 22px; }
+        .card {
+            background: var(--surface); border-radius: 12px; padding: 16px;
+            margin-bottom: 12px; border: 1px solid var(--border);
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 12px 20px; border-radius: 10px; border: none;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s; gap: 8px;
+        }
+        .btn:active { transform: scale(0.97); opacity: 0.8; }
+        .btn-primary { background: var(--accent); color: #000; width: 100%; }
+        .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+        .btn-success { background: var(--success); color: #000; width: 100%; }
+        .btn-danger { background: var(--danger); color: #fff; width: 100%; }
+        .btn-ghost { background: none; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-sm { padding: 8px 14px; font-size: 13px; }
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; margin-bottom: 6px;
+        }
+        .badge-push   { background: rgba(255,107,74,.15); color: var(--push); }
+        .badge-pull   { background: rgba(74,255,184,.15); color: var(--pull); }
+        .badge-legs   { background: rgba(184,74,255,.15); color: var(--legs); }
+        .badge-travel { background: rgba(255,208,74,.15); color: var(--travel); }
+        .section-label {
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: .06em; color: var(--text-muted);
+            margin: 20px 0 10px;
+        }
+        .section-label:first-child { margin-top: 0; }
+        .exercise-card {
+            background: var(--surface); border-radius: 12px;
+            margin-bottom: 10px; border: 1px solid var(--border); overflow: hidden;
+        }
+        .exercise-header {
+            padding: 14px 16px; display: flex; align-items: center;
+            justify-content: space-between; cursor: pointer; user-select: none;
+        }
+        .exercise-name { font-size: 16px; font-weight: 600; }
+        .exercise-target { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+        .set-dots { display: flex; gap: 4px; margin-top: 6px; }
+        .set-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+        .set-dot.done { background: var(--success); }
+        .exercise-body { padding: 0 16px 14px; border-top: 1px solid var(--border); display: none; }
+        .exercise-card.expanded .exercise-body { display: block; }
+        .sets-list { margin-bottom: 10px; }
+        .set-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .set-row:last-child { border-bottom: none; }
+        .set-num { color: var(--text-muted); width: 40px; }
+        .set-val { color: var(--success); font-weight: 600; }
+        .log-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
+        .form-group { flex: 1; }
+        .form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; }
+        .form-input {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; font-size: 16px; color: var(--text);
+            text-align: center;
+        }
+        .form-input:focus { outline: none; border-color: var(--accent); }
+        .form-select {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px; font-size: 15px; color: var(--text);
+        }
+        .form-select:focus { outline: none; border-color: var(--accent); }
+        .prev-best { font-size: 12px; color: var(--text-muted); text-align: right; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: var(--surface); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+        .stat-value { font-size: 26px; font-weight: 700; }
+        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .prog-card {
+            background: var(--surface); border: 2px solid var(--border);
+            border-radius: 12px; padding: 16px; cursor: pointer; margin-bottom: 10px;
+        }
+        .prog-card.active { border-color: var(--accent); background: rgba(79,158,255,.08); }
+        .prog-name { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .prog-desc { font-size: 13px; color: var(--text-muted); }
+        .history-item {
+            background: var(--surface); border-radius: 10px; padding: 14px 16px;
+            margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer;
+        }
+        .rest-timer {
+            position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 16px;
+            padding: 12px 20px; display: flex; align-items: center; gap: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,.5); z-index: 20; min-width: 220px;
+        }
+        .timer-display { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); }
+        .timer-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+        .toast {
+            position: fixed; top: 68px; left: 50%; transform: translateX(-50%);
+            background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 18px; font-size: 14px; z-index: 100;
+            opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap;
+        }
+        .toast.show { opacity: 1; }
+        .day-overview-row {
+            display: flex; align-items: center; padding: 8px 0;
+            border-bottom: 1px solid var(--border); font-size: 14px;
+        }
+        .day-overview-row:last-child { border-bottom: none; }
+        .chart-svg { width: 100%; height: 70px; overflow: visible; }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+        /* Edit exercise list */
+        .edit-ex-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0; border-bottom: 1px solid var(--border);
+        }
+        .edit-ex-row:last-child { border-bottom: none; }
+        .edit-ex-info { flex: 1; }
+        .edit-ex-name { font-size: 15px; font-weight: 500; }
+        .edit-ex-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .delete-btn {
+            width: 32px; height: 32px; border-radius: 8px; border: none;
+            background: rgba(255,74,74,.15); color: var(--danger);
+            font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .add-ex-form { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 14px; display: none; }
+        .add-ex-form.open { display: block; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        /* Flex utils */
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-8 { gap: 8px; }
+        .mt-8 { margin-top: 8px; }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .mb-12 { margin-bottom: 12px; }
+        .w-full { width: 100%; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 id="header-title">Today</h1>
+    <div id="header-action"></div>
+</div>
+<div class="content" id="main-content"></div>
+<div class="bottom-nav">
+    <button class="nav-btn active" onclick="navigate('today')" id="nav-today">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Today
+    </button>
+    <button class="nav-btn" onclick="navigate('history')" id="nav-history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
+    </button>
+    <button class="nav-btn" onclick="navigate('progress')" id="nav-progress">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Progress
+    </button>
+    <button class="nav-btn" onclick="navigate('settings')" id="nav-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Settings
+    </button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── PROGRAMMES (defaults) ────────────────────────────────────────────────────
+
+const PROGRAMMES = {
+  main: {
+    name: 'Main Programme',
+    description: '6-day PPL — gym with barbells & cables',
+    days: [
+      {
+        name: 'Push A', focus: 'Chest Focus', type: 'push',
+        exercises: [
+          { name: 'Barbell Bench Press',       sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 60,  note: 'Your current benchmark. Add 2.5kg when you hit 3×8 cleanly.' },
+          { name: 'Incline Dumbbell Press',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Overhead Press Machine',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 10 },
+          { name: 'Cable Lateral Raises',      sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 8,   note: 'Key for shoulder width — slow and controlled + Keep tension.' },
+          { name: 'Tricep Rope Pushdown',      sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Overhead Tricep Extension', sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 15 },
+        ]
+      },
+      {
+        name: 'Pull A', focus: 'Back Width & Pull-ups', type: 'pull',
+        exercises: [
+          { name: 'Pull-ups',                  sets: 3, reps: 'max',     kind: 'bodyweight', note: 'Currently 8 clean reps — aim to add 1 rep per cycle.' },
+          { name: 'Lat Pulldown',              sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Seated Cable Row',          sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 45 },
+          { name: 'Face Pulls',                sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 20, note: 'Protects shoulder health and builds rear delts.' },
+          { name: 'Behind back cable curl',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 25 },
+          { name: 'Preacher Curls',            sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 10 },
+        ]
+      },
+      {
+        name: 'Legs A', focus: 'Quads + Abs', type: 'legs',
+        exercises: [
+          { name: 'Barbell Back Squat',        sets: 4, reps: '8',       kind: 'weighted',   defaultWeight: 60,  note: 'Stay consistent here — this is the key leg builder.' },
+          { name: 'Leg Press',                 sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 100 },
+          { name: 'Leg Extension',             sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 40 },
+          { name: 'Romanian Deadlift',         sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Calf Raises',               sets: 4, reps: '15',      kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Hanging Leg Raises',        sets: 3, reps: '15',      kind: 'bodyweight', note: 'Keep legs straight for full core engagement.' },
+          { name: 'Cable Crunch',              sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 25 },
+        ]
+      },
+      {
+        name: 'Push B', focus: 'Shoulder Focus', type: 'push',
+        exercises: [
+          { name: 'Barbell Bench Press',       sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 60,  note: 'Your current benchmark. Add 2.5kg when you hit 3×8 cleanly.' },
+          { name: 'Incline Dumbbell Press',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Cable Lateral Raises',      sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 8,   note: 'Key for shoulder width — slow and controlled + Keep tension.' },
+          { name: 'Overhead Press Machine',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 25 },
+          { name: 'Dumbbell Front Raises',     sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 8 },
+          { name: 'Tricep Rope Pushdown',      sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Tricep Dips',               sets: 3, reps: '12',      kind: 'bodyweight' },
+        ]
+      },
+      {
+        name: 'Pull B', focus: 'Back Thickness', type: 'pull',
+        exercises: [
+          { name: 'Barbell Row',               sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 50,  note: 'Keep back flat, pull to lower chest.' },
+          { name: 'Seated Cable Row',          sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 45 },
+          { name: 'Wide Grip Lat Pulldown',    sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Rear Delt Flies',           sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 10, note: 'Essential for rounded, broad shoulders.' },
+          { name: 'Preacher Curl',             sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Incline Dumbbell Curl',     sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 8 },
+        ]
+      },
+      {
+        name: 'Legs B', focus: 'Posterior Chain + Abs', type: 'legs',
+        exercises: [
+          { name: 'Romanian Deadlift',         sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 60,  note: 'Feel the hamstring stretch at the bottom — control the descent.' },
+          { name: 'Bulgarian Split Squat',     sets: 3, reps: '10 each', kind: 'weighted',   defaultWeight: 16,  note: 'Hard but highly effective — best single-leg exercise.' },
+          { name: 'Leg Curl',                  sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 40 },
+          { name: 'Leg Press',                 sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 100 },
+          { name: 'Standing Calf Raises',      sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Decline Sit-ups',           sets: 3, reps: '15',      kind: 'bodyweight' },
+          { name: 'Russian Twists',            sets: 3, reps: '20 total',kind: 'bodyweight' },
+        ]
+      },
+    ]
+  },
+  exam: {
+    name: 'Exam Mode',
+    description: '4-day condensed split — stay consistent during study periods',
+    days: [
+      {
+        name: 'Push', focus: 'Chest & Shoulders', type: 'push',
+        exercises: [
+          { name: 'Barbell Bench Press',       sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Incline Dumbbell Press',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Overhead Press Machine',    sets: 3, reps: '8',       kind: 'weighted',   defaultWeight: 10 },
+          { name: 'Cable Lateral Raises',      sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 8 },
+          { name: 'Tricep Pushdown',           sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 20 },
+        ]
+      },
+      {
+        name: 'Pull', focus: 'Back & Biceps', type: 'pull',
+        exercises: [
+          { name: 'Pull-ups',                  sets: 4, reps: 'max',     kind: 'bodyweight' },
+          { name: 'Seated Machine Row',        sets: 4, reps: '8',       kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Lat Pulldown',              sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Face Pulls',                sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 20 },
+          { name: 'Behind back cable curl',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 25 },
+        ]
+      },
+      {
+        name: 'Legs + Abs', focus: 'Full Lower Body', type: 'legs',
+        exercises: [
+          { name: 'Barbell Back Squat',        sets: 4, reps: '8',       kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Romanian Deadlift',         sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Leg Press',                 sets: 3, reps: '12',      kind: 'weighted',   defaultWeight: 100 },
+          { name: 'Calf Raises',               sets: 4, reps: '15',      kind: 'weighted',   defaultWeight: 60 },
+          { name: 'Hanging Leg Raises',        sets: 3, reps: '15',      kind: 'bodyweight' },
+          { name: 'Plank',                     sets: 3, reps: '60s',     kind: 'timed',      defaultDuration: 60 },
+        ]
+      },
+      {
+        name: 'Upper', focus: 'Full Upper Body', type: 'push',
+        exercises: [
+          { name: 'Barbell Overhead Press',    sets: 4, reps: '8',       kind: 'weighted',   defaultWeight: 40 },
+          { name: 'Pull-ups',                  sets: 4, reps: 'max',     kind: 'bodyweight' },
+          { name: 'Incline Bench Press',       sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 50 },
+          { name: 'Seated Cable Row',          sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 45 },
+          { name: 'Dumbbell Lateral Raises',   sets: 3, reps: '15',      kind: 'weighted',   defaultWeight: 8 },
+          { name: 'Behind back cable curl',    sets: 3, reps: '10',      kind: 'weighted',   defaultWeight: 25 },
+        ]
+      },
+    ]
+  },
+  travel: {
+    name: 'Travel Mode',
+    description: 'Bodyweight only — parks, hostels, anywhere',
+    days: [
+      {
+        name: 'Push', focus: 'Chest, Shoulders & Triceps', type: 'travel',
+        exercises: [
+          { name: 'Push-ups',                  sets: 4, reps: 'max',     kind: 'bodyweight', note: 'Full range — chest to floor.' },
+          { name: 'Pike Push-ups',             sets: 3, reps: '12',      kind: 'bodyweight', note: 'Hips high, head toward floor — mimics overhead press.' },
+          { name: 'Diamond Push-ups',          sets: 3, reps: '12',      kind: 'bodyweight', note: 'Tricep focus.' },
+          { name: 'Wide Push-ups',             sets: 3, reps: '15',      kind: 'bodyweight' },
+          { name: 'Tricep Dips (chair/bed)',   sets: 3, reps: '15',      kind: 'bodyweight' },
+          { name: 'Decline Push-ups',          sets: 3, reps: '12',      kind: 'bodyweight', note: 'Feet elevated on bed or chair.' },
+        ]
+      },
+      {
+        name: 'Pull', focus: 'Back & Biceps', type: 'travel',
+        exercises: [
+          { name: 'Pull-ups',                  sets: 4, reps: 'max',     kind: 'bodyweight', note: 'Parks, playgrounds, hostel frames — always look for a bar.' },
+          { name: 'Chin-ups',                  sets: 3, reps: 'max',     kind: 'bodyweight' },
+          { name: 'Commando Pull-ups',         sets: 3, reps: '8 each',  kind: 'bodyweight', note: 'Side-on grip, alternating side each rep.' },
+          { name: 'Inverted Rows (table)',     sets: 3, reps: '15',      kind: 'bodyweight', note: 'Under a sturdy table, body straight, pull chest to edge.' },
+          { name: 'Towel Bicep Curl',          sets: 3, reps: '15',      kind: 'bodyweight', note: 'Loop towel around door handle, lean back, curl.' },
+        ]
+      },
+      {
+        name: 'Legs + Abs', focus: 'Full Lower Body', type: 'travel',
+        exercises: [
+          { name: 'Bodyweight Squat',          sets: 4, reps: '20',      kind: 'bodyweight' },
+          { name: 'Bulgarian Split Squat (chair)', sets: 3, reps: '15 each', kind: 'bodyweight', note: 'Back foot on bed — great single-leg strength.' },
+          { name: 'Jump Squats',               sets: 3, reps: '15',      kind: 'bodyweight', note: 'Be mindful of hostel floors!' },
+          { name: 'Glute Bridges',             sets: 3, reps: '20',      kind: 'bodyweight' },
+          { name: 'Calf Raises (step)',        sets: 4, reps: '25',      kind: 'bodyweight', note: 'Edge of a step for full range of motion.' },
+          { name: 'Plank',                     sets: 3, reps: '60s',     kind: 'timed',      defaultDuration: 60 },
+          { name: 'Leg Raises',                sets: 3, reps: '20',      kind: 'bodyweight' },
+          { name: 'Mountain Climbers',         sets: 3, reps: '30 total',kind: 'bodyweight' },
+        ]
+      },
+      {
+        name: 'Full Body', focus: 'Conditioning & Strength', type: 'travel',
+        exercises: [
+          { name: 'Burpees',                   sets: 3, reps: '10',      kind: 'bodyweight' },
+          { name: 'Push-ups',                  sets: 3, reps: '15',      kind: 'bodyweight' },
+          { name: 'Pull-ups (if available)',   sets: 3, reps: 'max',     kind: 'bodyweight' },
+          { name: 'Reverse Lunges',            sets: 3, reps: '15 each', kind: 'bodyweight' },
+          { name: 'Plank to Push-up',          sets: 3, reps: '10',      kind: 'bodyweight' },
+          { name: 'Hollow Body Hold',          sets: 3, reps: '30s',     kind: 'timed',      defaultDuration: 30 },
+        ]
+      },
+    ]
+  }
+};
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+const SK = 'gymTracker_v1';
+function getState() {
+  try { return JSON.parse(localStorage.getItem(SK)) || mkDefault(); } catch { return mkDefault(); }
+}
+function saveState() { localStorage.setItem(SK, JSON.stringify(S)); }
+function mkDefault() {
+  return { programme: 'main', dayIndex: 0, activeSession: null, sessions: [], customDays: {} };
+}
+
+let S = getState();
+if (!S.customDays) S.customDays = {};
+
+let currentView = 'today';
+let editingProg = null;
+let editingDay  = null;
+let restInterval = null;
+let restSecs = 0;
+
+function getDays(progKey) {
+  const k = progKey || S.programme;
+  return S.customDays[k] || PROGRAMMES[k].days;
+}
+
+function ensureCustomDays(progKey) {
+  if (!S.customDays[progKey]) {
+    S.customDays[progKey] = JSON.parse(JSON.stringify(PROGRAMMES[progKey].days));
+    saveState();
+  }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+
+function navigate(v) {
+  currentView = v;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + v);
+  if (navEl) navEl.classList.add('active');
+  render();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+
+function render() {
+  const titles = {
+    today: 'Today', history: 'History',
+    progress: 'Progress', settings: 'Settings',
+    'edit-programme': 'Edit Programme', 'edit-day': 'Edit Day'
+  };
+  document.getElementById('header-title').textContent = titles[currentView] || '';
+  document.getElementById('header-action').innerHTML = '';
+  const c = document.getElementById('main-content');
+  if (currentView === 'today')            c.innerHTML = renderToday();
+  if (currentView === 'history')          c.innerHTML = renderHistory();
+  if (currentView === 'progress')         c.innerHTML = renderProgress();
+  if (currentView === 'settings')         c.innerHTML = renderSettings();
+  if (currentView === 'edit-programme')   c.innerHTML = renderEditProgramme();
+  if (currentView === 'edit-day')         c.innerHTML = renderEditDay();
+}
+
+// ─── TODAY ───────────────────────────────────────────────────────────────────
+
+function renderToday() {
+  const days = getDays();
+  const day  = days[S.dayIndex % days.length];
+  if (S.activeSession) return renderActiveWorkout(day);
+
+  const totalWorkouts = S.sessions.length;
+  const thisWeek = S.sessions.filter(s => {
+    const ago = Date.now() - 7*24*60*60*1000;
+    return new Date(s.date).getTime() >= ago;
+  }).length;
+
+  const statsHtml = totalWorkouts > 0 ? `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">${totalWorkouts}</div><div class="stat-label">Total Sessions</div></div>
+      <div class="stat-card"><div class="stat-value">${thisWeek}</div><div class="stat-label">This Week</div></div>
+    </div>` : '';
+
+  const nextDay = days[(S.dayIndex + 1) % days.length];
+
+  return `
+    ${statsHtml}
+    <div class="mb-12">
+      <div class="badge badge-${day.type}">${day.name}</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:4px">${day.focus}</div>
+      <div style="color:var(--text-muted);font-size:14px">${PROGRAMMES[S.programme].name} · ${day.exercises.length} exercises</div>
+    </div>
+    <div class="card mb-12">
+      <div class="section-label" style="margin-top:0">Today's Exercises</div>
+      ${day.exercises.map(ex => `
+        <div class="day-overview-row">
+          <div style="flex:1"><div style="font-size:14px;font-weight:500">${ex.name}</div></div>
+          <div style="font-size:12px;color:var(--text-muted)">${ex.sets}×${ex.reps}${ex.kind==='weighted'&&ex.defaultWeight?' · '+ex.defaultWeight+'kg':''}</div>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-primary" onclick="startWorkout()" style="font-size:17px;padding:16px;margin-bottom:10px">Start Workout</button>
+    <button class="btn btn-secondary w-full" onclick="skipDay()">Skip — do next day instead</button>
+    <div class="section-label">Coming Up Next</div>
+    <div class="card" style="opacity:.65">
+      <div class="badge badge-${nextDay.type}" style="margin-bottom:6px">${nextDay.name}</div>
+      <div style="font-size:15px;font-weight:600">${nextDay.focus}</div>
+    </div>`;
+}
+
+function renderActiveWorkout(day) {
+  const sess = S.activeSession;
+  let html = `
+    <div class="flex items-center justify-between mb-12">
+      <div>
+        <div class="badge badge-${day.type}" style="margin-bottom:4px">${day.name}</div>
+        <div style="font-size:20px;font-weight:700">${day.focus}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="confirmAbandon()">Quit</button>
+    </div>`;
+
+  day.exercises.forEach((ex, i) => {
+    const logged = sess.exercises[i] || [];
+    const done   = logged.length >= ex.sets;
+    const open   = sess.expandedEx === i;
+    const prev   = getPrevBest(ex.name);
+
+    html += `
+    <div class="exercise-card ${open ? 'expanded' : ''}" id="ex-${i}">
+      <div class="exercise-header" onclick="toggleEx(${i})">
+        <div>
+          <div class="exercise-name">${done ? '<span style="color:var(--success)">✓ </span>' : ''}${ex.name}</div>
+          <div class="exercise-target">${ex.sets} sets × ${ex.reps}</div>
+          <div class="set-dots">${Array.from({length:ex.sets},(_,k)=>`<div class="set-dot ${k<logged.length?'done':''}"></div>`).join('')}</div>
+        </div>
+        <div class="prev-best">${prev ? fmtSet(prev,ex.kind) : 'No prev data'}<br><span style="font-size:18px;margin-top:4px;display:block">${open?'▲':'▼'}</span></div>
+      </div>
+      <div class="exercise-body">
+        ${renderSetsLogged(logged, ex)}
+        ${done ? `<div style="text-align:center;color:var(--success);padding:8px 0;font-weight:600">✓ All ${ex.sets} sets done</div>` : renderLogForm(i, ex, logged)}
+        ${ex.note ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;font-style:italic">💡 ${ex.note}</div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  const doneCount = day.exercises.filter((_,i) => (sess.exercises[i]||[]).length >= day.exercises[i].sets).length;
+  html += `
+    <div style="margin-top:16px">
+      <div style="font-size:13px;color:var(--text-muted);text-align:center;margin-bottom:10px">${doneCount}/${day.exercises.length} exercises complete</div>
+      <button class="btn btn-success" onclick="completeWorkout()">Complete Workout</button>
+    </div>`;
+  return html;
+}
+
+function renderSetsLogged(logged, ex) {
+  if (!logged.length) return `<div style="font-size:13px;color:var(--text-muted);padding:8px 0">No sets logged yet</div>`;
+  return `<div class="sets-list">${logged.map((s,i)=>`
+    <div class="set-row">
+      <span class="set-num">Set ${i+1}</span>
+      <span class="set-val">${s.weight!=null?s.weight+'kg × '+s.reps+' reps':s.duration!=null?s.duration+'s':s.reps+' reps'}</span>
+    </div>`).join('')}</div>`;
+}
+
+function renderLogForm(exIdx, ex, logged) {
+  const setNum = logged.length + 1;
+  const lastW  = logged.length ? logged[logged.length-1].weight : null;
+  const defW   = lastW ?? getLastWeight(ex.name) ?? ex.defaultWeight ?? 20;
+  const defR   = ex.reps !== 'max' ? ex.reps.split(' ')[0] : '8';
+
+  if (ex.kind === 'weighted') return `
+    <div class="log-form">
+      <div class="form-group"><label class="form-label">Weight (kg)</label>
+        <input type="number" class="form-input" id="iw-${exIdx}" value="${defW}" step="2.5" min="0" inputmode="decimal"></div>
+      <div class="form-group"><label class="form-label">Reps (set ${setNum})</label>
+        <input type="number" class="form-input" id="ir-${exIdx}" value="${defR}" min="1" inputmode="numeric"></div>
+      <button class="btn btn-primary btn-sm" onclick="logSet(${exIdx})" style="width:auto;padding:10px 14px;align-self:flex-end">+</button>
+    </div>`;
+  if (ex.kind === 'bodyweight') return `
+    <div class="log-form">
+      <div class="form-group"><label class="form-label">Reps (set ${setNum})</label>
+        <input type="number" class="form-input" id="ir-${exIdx}" value="${defR}" min="1" inputmode="numeric"></div>
+      <button class="btn btn-primary btn-sm" onclick="logSet(${exIdx})" style="width:auto;padding:10px 14px;align-self:flex-end">+</button>
+    </div>`;
+  if (ex.kind === 'timed') return `
+    <div class="log-form">
+      <div class="form-group"><label class="form-label">Duration (sec, set ${setNum})</label>
+        <input type="number" class="form-input" id="id-${exIdx}" value="${ex.defaultDuration||60}" min="1" inputmode="numeric"></div>
+      <button class="btn btn-primary btn-sm" onclick="logSet(${exIdx})" style="width:auto;padding:10px 14px;align-self:flex-end">+</button>
+    </div>`;
+  return '';
+}
+
+// ─── WORKOUT ACTIONS ─────────────────────────────────────────────────────────
+
+function startWorkout() {
+  S.activeSession = {
+    date: today(), programme: S.programme,
+    dayIndex: S.dayIndex, exercises: {}, expandedEx: 0, startTime: Date.now()
+  };
+  saveState(); render();
+}
+
+function toggleEx(i) {
+  if (!S.activeSession) return;
+  S.activeSession.expandedEx = S.activeSession.expandedEx === i ? null : i;
+  saveState();
+  document.querySelectorAll('.exercise-card').forEach((c,j) => {
+    c.classList.toggle('expanded', j === S.activeSession.expandedEx);
+  });
+}
+
+function logSet(exIdx) {
+  const days = getDays();
+  const day  = days[S.dayIndex % days.length];
+  const ex   = day.exercises[exIdx];
+  if (!S.activeSession.exercises[exIdx]) S.activeSession.exercises[exIdx] = [];
+
+  let setData;
+  if (ex.kind === 'weighted') {
+    const w = parseFloat(document.getElementById('iw-'+exIdx)?.value) || 0;
+    const r = parseInt(document.getElementById('ir-'+exIdx)?.value) || 0;
+    if (!r) { showToast('Enter reps'); return; }
+    setData = { weight: w, reps: r };
+  } else if (ex.kind === 'bodyweight') {
+    const r = parseInt(document.getElementById('ir-'+exIdx)?.value) || 0;
+    if (!r) { showToast('Enter reps'); return; }
+    setData = { reps: r };
+  } else {
+    const d = parseInt(document.getElementById('id-'+exIdx)?.value) || 0;
+    if (!d) { showToast('Enter duration'); return; }
+    setData = { duration: d };
+  }
+
+  S.activeSession.exercises[exIdx].push(setData);
+  saveState();
+  startRestTimer(180);
+  showToast('Set logged!');
+
+  const newLogged = S.activeSession.exercises[exIdx];
+  if (newLogged.length >= ex.sets) {
+    const next = exIdx + 1;
+    if (next < day.exercises.length) S.activeSession.expandedEx = next;
+  }
+  saveState(); render();
+}
+
+function completeWorkout() {
+  const days = getDays();
+  const day  = days[S.dayIndex % days.length];
+  const sess = S.activeSession;
+  S.sessions.push({
+    date: sess.date, programme: sess.programme,
+    dayIndex: sess.dayIndex, dayName: day.name, dayFocus: day.focus,
+    duration: Math.round((Date.now() - sess.startTime) / 60000),
+    exercises: day.exercises.map((ex, i) => ({ name: ex.name, sets: sess.exercises[i] || [] }))
+  });
+  S.activeSession = null;
+  S.dayIndex = (S.dayIndex + 1) % days.length;
+  saveState(); stopRestTimer(); render();
+  setTimeout(() => showToast('Workout complete!'), 100);
+}
+
+function confirmAbandon() {
+  if (confirm('Abandon this workout? Progress will be lost.')) {
+    S.activeSession = null; saveState(); stopRestTimer(); render();
+  }
+}
+
+function skipDay() {
+  const days = getDays();
+  S.dayIndex = (S.dayIndex + 1) % days.length;
+  saveState(); render();
+}
+
+// ─── REST TIMER ──────────────────────────────────────────────────────────────
+
+function startRestTimer(secs) {
+  stopRestTimer(); restSecs = secs;
+  let el = document.getElementById('rest-timer');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rest-timer'; el.className = 'rest-timer';
+    el.innerHTML = `<div><div class="timer-label">Rest</div><div class="timer-display" id="timer-disp">3:00</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="stopRestTimer()">Done</button>`;
+    document.body.appendChild(el);
+  }
+  el.classList.remove('hidden'); updateTimerDisp();
+  restInterval = setInterval(() => {
+    restSecs--; updateTimerDisp();
+    if (restSecs <= 0) {
+      stopRestTimer();
+      showToast('Rest done — next set!');
+      sendNotif('Rest Over', 'Time for your next set!');
+    }
+  }, 1000);
+}
+
+function updateTimerDisp() {
+  const el = document.getElementById('timer-disp');
+  if (!el) return;
+  const m = Math.floor(restSecs/60), s = restSecs % 60;
+  el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  el.style.color = restSecs <= 10 ? 'var(--danger)' : 'var(--accent)';
+}
+
+function stopRestTimer() {
+  clearInterval(restInterval); restInterval = null;
+  const el = document.getElementById('rest-timer');
+  if (el) el.classList.add('hidden');
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+
+function renderHistory() {
+  if (!S.sessions.length) return `
+    <div class="empty-state"><div class="empty-icon">📋</div>
+    <div class="empty-title">No workouts yet</div>
+    Complete your first workout to see history here</div>`;
+
+  return [...S.sessions].reverse().map((s, ri) => {
+    const idx  = S.sessions.length - 1 - ri;
+    const sets = (s.exercises||[]).reduce((a,e)=>a+(e.sets?e.sets.length:0),0);
+    const days = getDays(s.programme);
+    const day  = days[s.dayIndex % days.length];
+    return `
+    <div class="history-item" onclick="showDetail(${idx})">
+      <div class="flex items-center justify-between">
+        <div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">${fmtDate(s.date)}</div>
+          <div style="font-size:16px;font-weight:600">
+            <span class="badge badge-${day?day.type:'push'}" style="margin-right:6px;font-size:11px">${s.dayName}</span>${s.dayFocus}
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${sets} sets · ${s.duration||'?'} min</div>
+        </div>
+        <div style="color:var(--text-muted);font-size:20px">›</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(idx) {
+  const s    = S.sessions[idx];
+  const days = getDays(s.programme);
+  const day  = days[s.dayIndex % days.length];
+  let html = `
+    <button class="btn btn-secondary btn-sm mb-12" onclick="navigate('history')">← Back</button>
+    <div class="mb-12">
+      <div class="badge badge-${day?day.type:'push'}" style="margin-bottom:6px">${s.dayName}</div>
+      <div style="font-size:22px;font-weight:700">${s.dayFocus}</div>
+      <div style="color:var(--text-muted);font-size:14px">${fmtDate(s.date)} · ${s.duration||'?'} min</div>
+    </div>`;
+  (s.exercises||[]).forEach(ex => {
+    if (!ex.sets||!ex.sets.length) return;
+    html += `<div class="card"><div style="font-size:15px;font-weight:600;margin-bottom:8px">${ex.name}</div>
+      ${ex.sets.map((set,i)=>`
+        <div class="set-row"><span class="set-num">Set ${i+1}</span>
+        <span>${set.weight!=null?set.weight+'kg × '+set.reps+' reps':set.duration!=null?set.duration+'s':set.reps+' reps'}</span></div>`).join('')}
+    </div>`;
+  });
+  document.getElementById('main-content').innerHTML = html;
+  document.getElementById('header-title').textContent = 'Session Detail';
+}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+
+function renderProgress() {
+  const lifts = ['Barbell Bench Press','Barbell Overhead Press','Pull-ups','Barbell Back Squat','Romanian Deadlift','Barbell Row'];
+  let html = '';
+  lifts.forEach(name => {
+    const data = progressData(name);
+    if (data.length < 1) return;
+    const first = data[0], best = data.reduce((b,d) => score(d) > score(b) ? d : b, data[0]);
+    html += `<div class="card">
+      <div style="font-size:16px;font-weight:600;margin-bottom:2px">${name}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">${data.length} session${data.length>1?'s':''} logged</div>
+      ${data.length>1?miniChart(data):''}
+      <div class="flex justify-between mt-8">
+        <div><div style="font-size:11px;color:var(--text-muted)">First</div><div style="font-size:14px">${fmtPt(first,name)}</div></div>
+        <div style="text-align:right"><div style="font-size:11px;color:var(--text-muted)">Best</div><div style="font-size:14px;color:var(--success)">${fmtPt(best,name)}</div></div>
+      </div>
+    </div>`;
+  });
+  if (!html) return `<div class="empty-state"><div class="empty-icon">📈</div>
+    <div class="empty-title">No data yet</div>Log workouts to track your progress</div>`;
+  return html;
+}
+
+function progressData(name) {
+  const out = [];
+  S.sessions.forEach(s => {
+    const ex = (s.exercises||[]).find(e=>e.name===name);
+    if (!ex||!ex.sets||!ex.sets.length) return;
+    const best = ex.sets.reduce((b,s2)=>score(s2)>score(b)?s2:b, ex.sets[0]);
+    out.push({ date: s.date, ...best });
+  });
+  return out;
+}
+
+function score(s) {
+  if (s.weight) return s.weight * (1 + (s.reps||0)/30);
+  return s.reps || s.duration || 0;
+}
+
+function fmtPt(p, name) {
+  if (name==='Pull-ups') return `${p.reps} reps`;
+  if (p.weight) return `${p.weight}kg × ${p.reps}`;
+  if (p.duration) return `${p.duration}s`;
+  return `${p.reps} reps`;
+}
+
+function miniChart(data) {
+  const vals = data.map(score);
+  const min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
+  const W = 300, H = 60;
+  const pts = vals.map((v,i) => {
+    const x = vals.length>1 ? (i/(vals.length-1))*W : W/2;
+    const y = H - ((v-min)/range)*(H-12) - 6;
+    return `${x},${y}`;
+  }).join(' ');
+  const dots = vals.map((v,i) => {
+    const x = vals.length>1 ? (i/(vals.length-1))*W : W/2;
+    const y = H - ((v-min)/range)*(H-12) - 6;
+    return `<circle cx="${x}" cy="${y}" r="3.5" fill="var(--accent)"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart-svg">
+    <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}</svg>`;
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+
+function renderSettings() {
+  const prog   = PROGRAMMES[S.programme];
+  const days   = getDays();
+  const dayIdx = S.dayIndex % days.length;
+  return `
+    <div class="section-label" style="margin-top:0">Programme</div>
+    ${Object.entries(PROGRAMMES).map(([k,p])=>`
+      <div class="prog-card ${S.programme===k?'active':''}" onclick="setProg('${k}')">
+        <div class="prog-name">${p.name}</div>
+        <div class="prog-desc">${p.description}</div>
+      </div>`).join('')}
+
+    <div class="section-label">Current Position</div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:600">${prog.name}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Day ${dayIdx+1} of ${days.length} — ${days[dayIdx].name}</div>
+      <div style="display:flex;gap:6px">
+        ${days.map((d,i)=>`
+          <div style="flex:1;text-align:center">
+            <div style="font-size:9px;color:var(--text-muted);margin-bottom:3px">${d.name.split(' ').map(w=>w[0]).join('')}</div>
+            <div style="height:6px;border-radius:3px;background:${i===dayIdx?'var(--accent)':i<dayIdx?'var(--success)':'var(--border)'}"></div>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section-label">Customise Exercises</div>
+    <div class="card">
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px">
+        Add, remove, or reorder exercises for any day in the current programme.
+      </div>
+      <button class="btn btn-secondary w-full" onclick="openEditProgramme('${S.programme}')">Edit ${prog.name} days →</button>
+    </div>
+
+    <div class="section-label">Your Starting Stats</div>
+    <div class="card">
+      ${[['Height','181 cm'],['Weight','66 kg'],['Bench','60 kg × 8'],['Pull-ups','8 reps']].map(([k,v])=>`
+        <div class="flex justify-between" style="font-size:14px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text-muted)">${k}</span><span>${v}</span>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-label">Data</div>
+    <div class="card">
+      <div style="font-size:14px;color:var(--text-muted);margin-bottom:12px">${S.sessions.length} sessions saved on this device</div>
+      <button class="btn btn-secondary btn-sm" onclick="exportData()">Export JSON backup</button>
+    </div>
+    <div class="mt-8"><button class="btn btn-danger btn-sm" onclick="resetAll()">Reset All Data</button></div>`;
+}
+
+function setProg(k) {
+  if (S.programme === k) return;
+  if (S.activeSession) { showToast('Finish or quit current workout first'); return; }
+  S.programme = k; S.dayIndex = 0; saveState(); render(); showToast('Programme changed');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], {type:'application/json'});
+  const a = Object.assign(document.createElement('a'), {href:URL.createObjectURL(blob), download:'gym-backup.json'});
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+function resetAll() {
+  if (confirm('Delete ALL data? This cannot be undone.')) {
+    localStorage.removeItem(SK); S = mkDefault(); render(); showToast('Data reset');
+  }
+}
+
+// ─── EDIT PROGRAMME ──────────────────────────────────────────────────────────
+
+function openEditProgramme(progKey) {
+  ensureCustomDays(progKey);
+  editingProg = progKey;
+  currentView = 'edit-programme';
+  render();
+}
+
+function renderEditProgramme() {
+  const days = getDays(editingProg);
+  const prog = PROGRAMMES[editingProg];
+  return `
+    <button class="btn btn-secondary btn-sm mb-12" onclick="navigate('settings')">← Back</button>
+    <div style="font-size:20px;font-weight:700;margin-bottom:4px">${prog.name}</div>
+    <div style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Tap a day to edit its exercises</div>
+    ${days.map((d,i) => `
+      <div class="card" style="cursor:pointer" onclick="openEditDay(${i})">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="badge badge-${d.type}" style="margin-bottom:4px">${d.name}</div>
+            <div style="font-size:15px;font-weight:600">${d.focus}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">${d.exercises.length} exercises</div>
+          </div>
+          <div style="color:var(--text-muted);font-size:20px">›</div>
+        </div>
+      </div>`).join('')}`;
+}
+
+function openEditDay(dayIdx) {
+  editingDay = dayIdx;
+  currentView = 'edit-day';
+  render();
+}
+
+function renderEditDay() {
+  const days = getDays(editingProg);
+  const day  = days[editingDay];
+  return `
+    <button class="btn btn-secondary btn-sm mb-12" onclick="currentView='edit-programme';render()">← Back</button>
+    <div class="flex items-center justify-between mb-12">
+      <div>
+        <div class="badge badge-${day.type}" style="margin-bottom:4px">${day.name}</div>
+        <div style="font-size:20px;font-weight:700">${day.focus}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetDayToDefault(${editingDay})">Reset</button>
+    </div>
+
+    <div class="card">
+      <div class="section-label" style="margin-top:0">Exercises</div>
+      ${day.exercises.length === 0
+        ? `<div style="font-size:14px;color:var(--text-muted);padding:8px 0">No exercises — add one below</div>`
+        : day.exercises.map((ex, i) => `
+          <div class="edit-ex-row">
+            <div class="edit-ex-info">
+              <div class="edit-ex-name">${ex.name}</div>
+              <div class="edit-ex-meta">${ex.sets} sets × ${ex.reps}${ex.kind==='weighted'&&ex.defaultWeight?' · '+ex.defaultWeight+'kg':''} · ${ex.kind}</div>
+            </div>
+            <button class="delete-btn" onclick="deleteExercise(${editingDay},${i})">×</button>
+          </div>`).join('')}
+
+      <div id="add-ex-toggle" style="margin-top:14px">
+        <button class="btn btn-secondary w-full" onclick="toggleAddForm()">+ Add Exercise</button>
+      </div>
+
+      <div class="add-ex-form" id="add-ex-form">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px">New Exercise</div>
+        <div style="margin-bottom:8px">
+          <label class="form-label">Name</label>
+          <input type="text" class="form-input" id="new-name" placeholder="e.g. Dumbbell Curl" style="text-align:left;padding:10px 12px">
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="form-label">Sets</label>
+            <input type="number" class="form-input" id="new-sets" value="3" min="1" inputmode="numeric">
+          </div>
+          <div>
+            <label class="form-label">Reps</label>
+            <input type="text" class="form-input" id="new-reps" value="10" placeholder="10 or max or 60s">
+          </div>
+        </div>
+        <div style="margin-bottom:8px">
+          <label class="form-label">Type</label>
+          <select class="form-select" id="new-kind" onchange="toggleWeightField()">
+            <option value="weighted">Weighted (barbell/dumbbell)</option>
+            <option value="bodyweight">Bodyweight</option>
+            <option value="timed">Timed (plank etc.)</option>
+          </select>
+        </div>
+        <div id="new-weight-row" style="margin-bottom:12px">
+          <label class="form-label">Default Weight (kg)</label>
+          <input type="number" class="form-input" id="new-weight" value="20" min="0" inputmode="decimal">
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="addExercise(${editingDay})" style="flex:1">Add</button>
+          <button class="btn btn-secondary" onclick="toggleAddForm()" style="flex:1">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleAddForm() {
+  const form = document.getElementById('add-ex-form');
+  form.classList.toggle('open');
+  const btn = document.getElementById('add-ex-toggle');
+  btn.style.display = form.classList.contains('open') ? 'none' : 'block';
+}
+
+function toggleWeightField() {
+  const kind = document.getElementById('new-kind')?.value;
+  const row  = document.getElementById('new-weight-row');
+  if (row) row.style.display = kind === 'weighted' ? 'block' : 'none';
+}
+
+function addExercise(dayIdx) {
+  const name   = document.getElementById('new-name')?.value.trim();
+  const sets   = parseInt(document.getElementById('new-sets')?.value) || 3;
+  const reps   = document.getElementById('new-reps')?.value.trim() || '10';
+  const kind   = document.getElementById('new-kind')?.value || 'weighted';
+  const weight = parseFloat(document.getElementById('new-weight')?.value) || 20;
+
+  if (!name) { showToast('Enter an exercise name'); return; }
+
+  const ex = { name, sets, reps, kind };
+  if (kind === 'weighted')  ex.defaultWeight = weight;
+  if (kind === 'timed')     ex.defaultDuration = parseInt(reps) || 60;
+
+  ensureCustomDays(editingProg);
+  S.customDays[editingProg][dayIdx].exercises.push(ex);
+  saveState();
+  showToast(`${name} added`);
+  render();
+}
+
+function deleteExercise(dayIdx, exIdx) {
+  const days = getDays(editingProg);
+  const name = days[dayIdx].exercises[exIdx].name;
+  if (!confirm(`Remove "${name}" from this day?`)) return;
+  ensureCustomDays(editingProg);
+  S.customDays[editingProg][dayIdx].exercises.splice(exIdx, 1);
+  saveState();
+  showToast(`${name} removed`);
+  render();
+}
+
+function resetDayToDefault(dayIdx) {
+  const defaultDay = PROGRAMMES[editingProg].days[dayIdx];
+  if (!confirm(`Reset "${defaultDay.name}" back to the original exercises?`)) return;
+  ensureCustomDays(editingProg);
+  S.customDays[editingProg][dayIdx].exercises = JSON.parse(JSON.stringify(defaultDay.exercises));
+  saveState();
+  showToast('Day reset to defaults');
+  render();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function fmtDate(d) {
+  const date = new Date(d + 'T00:00:00');
+  const diff = Math.round((new Date().setHours(0,0,0,0) - date) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return date.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:diff>300?'numeric':undefined});
+}
+
+function fmtSet(s, kind) {
+  if (kind === 'weighted' && s.weight) return `${s.weight}kg×${s.reps}`;
+  if (kind === 'timed' && s.duration)  return `${s.duration}s`;
+  return `${s.reps||0} reps`;
+}
+
+function getPrevBest(name) {
+  for (let i = S.sessions.length-1; i >= 0; i--) {
+    const ex = (S.sessions[i].exercises||[]).find(e=>e.name===name);
+    if (ex && ex.sets && ex.sets.length) return ex.sets.reduce((b,s)=>score(s)>score(b)?s:b, ex.sets[0]);
+  }
+  return null;
+}
+
+function getLastWeight(name) {
+  for (let i = S.sessions.length-1; i >= 0; i--) {
+    const ex = (S.sessions[i].exercises||[]).find(e=>e.name===name);
+    if (ex && ex.sets && ex.sets.length) {
+      const last = ex.sets[ex.sets.length-1];
+      if (last.weight != null) return last.weight;
+    }
+  }
+  return null;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendNotif(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body });
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+requestNotifPermission();
+render();
+</script>
+</body>
+</html>
