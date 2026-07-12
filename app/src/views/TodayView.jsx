@@ -33,8 +33,10 @@ function TodayView({ userId }) {
 
     if (active && active.length) {
       setSession(active[0])
-      await loadSessionExercises(active[0].id)
-      setPhase('active')
+      const exercises = await loadSessionExercises(active[0].id)
+      // If the app closed before any exercises were picked, resume the
+      // picker instead of showing an empty active session.
+      setPhase(exercises.length ? 'active' : 'picking')
       return
     }
 
@@ -61,6 +63,7 @@ function TodayView({ userId }) {
       .eq('session_id', sessionId)
       .order('order_index')
     setSessionExercises(data ?? [])
+    return data ?? []
   }
 
   async function handleStartWorkout(dayType, effectiveRotationIndex) {

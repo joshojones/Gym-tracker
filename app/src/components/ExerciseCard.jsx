@@ -7,7 +7,7 @@ function defaultRepsGuess(targetReps) {
   return Number.isNaN(n) ? 8 : n
 }
 
-function ExerciseCard({ sessionExercise, onSetLogged }) {
+function ExerciseCard({ sessionExercise }) {
   const ex = sessionExercise.exercise
   const [expanded, setExpanded] = useState(false)
   const [loggedSets, setLoggedSets] = useState([])
@@ -76,7 +76,6 @@ function ExerciseCard({ sessionExercise, onSetLogged }) {
       return
     }
     await loadLoggedSets()
-    onSetLogged?.()
   }
 
   return (

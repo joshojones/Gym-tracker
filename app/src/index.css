@@ -138,15 +138,6 @@ body {
 .log-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 10px; }
 .form-group { flex: 1; }
 
-.rest-timer {
-  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 16px;
-  padding: 12px 20px; display: flex; align-items: center; gap: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,.5); z-index: 20; min-width: 220px;
-}
-.timer-display { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.timer-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
-
 .history-item {
   background: var(--surface); border-radius: 10px; padding: 14px 16px;
   margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer;

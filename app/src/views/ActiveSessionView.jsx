@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import ExerciseCard from '../components/ExerciseCard'
 import ExercisePicker from '../components/ExercisePicker'
-import RestTimer from '../components/RestTimer'
 
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1)
@@ -10,7 +9,6 @@ function capitalize(s) {
 
 function ActiveSessionView({ session, sessionExercises, onExercisesAdded, onComplete, onAbandon }) {
   const [addingMore, setAddingMore] = useState(false)
-  const [restTrigger, setRestTrigger] = useState(0)
 
   async function handleAddMore(selected) {
     const rows = selected.map((ex, i) => ({
@@ -48,7 +46,7 @@ function ActiveSessionView({ session, sessionExercises, onExercisesAdded, onComp
       </div>
 
       {sessionExercises.map((se) => (
-        <ExerciseCard key={se.id} sessionExercise={se} onSetLogged={() => setRestTrigger((t) => t + 1)} />
+        <ExerciseCard key={se.id} sessionExercise={se} />
       ))}
 
       <button className="btn btn-secondary w-full mb-12" onClick={() => setAddingMore(true)}>
@@ -57,8 +55,6 @@ function ActiveSessionView({ session, sessionExercises, onExercisesAdded, onComp
       <button className="btn btn-success w-full" onClick={onComplete}>
         Complete Workout
       </button>
-
-      <RestTimer trigger={restTrigger} />
     </>
   )
 }
